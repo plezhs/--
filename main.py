@@ -2,14 +2,22 @@ from datetime import datetime
 import json
 import sys
 import PyQt6.QtCore
-import os
-import random
-from qt_material import apply_stylesheet, list_themes
-from PyQt6.QtWidgets import (QListWidgetItem,QAbstractItemView,QApplication, QWidget, QLabel, QMainWindow,QHBoxLayout,QVBoxLayout,QGridLayout,QLineEdit,QTextEdit,QPushButton, QDialog, QMessageBox, QListWidget, QListView, QComboBox)  # Added import for QComboBox
+from PyQt6.QtWidgets import (QApplication, QWidget,QHBoxLayout,QVBoxLayout,QGridLayout,QLineEdit,QPushButton, QDialog, QMessageBox,QListView, QComboBox)  # Added import for QComboBox
 from PyQt6.QtCore import QSortFilterProxyModel, Qt
-from PyQt6.QtGui import QIntValidator
-from PyQt6.QtGui import QStandardItemModel, QStandardItem
-import time
+from PyQt6.QtGui import QStandardItemModel, QStandardItem,QIntValidator
+import os
+from qt_material import apply_stylesheet, list_themes
+
+# def resource_path(relative_path):
+#     """ PyInstaller 패키지 내에서 리소스 파일의 절대 경로를 가져오는 함수 """
+#     if getattr(sys, 'frozen', False):
+#         # PyInstaller로 패키징된 경우
+#         base_path = sys._MEIPASS
+#     else:
+#         # 스크립트가 실행 중인 디렉터리
+#         base_path = os.path.abspath(".")
+
+#     return os.path.join(base_path, relative_path)
 
 class TagFilterProxyModel(QSortFilterProxyModel):
     def __init__(self):
@@ -56,14 +64,27 @@ class MW(QWidget):
     def __init__(self):
         """ Constructor for Main Window Class """
         super().__init__()
-        self.db = './db.json'
-        with open(self.db,'r') as js:
-            data = json.load(js)
-            DB.money = data["money"]
-            DB.log = data["log"]
-            DB.log_m = data["log_m"]
-            DB.tms = data["theme"]
-            DB.tagli = list(set(data["tags"]))
+        self.db = os.getenv('APPDATA')+"/plezhs/db.json"
+        try:
+            with open(self.db,'r') as js:
+                data = json.load(js)
+                DB.money = data["money"]
+                DB.log = data["log"]
+                DB.log_m = data["log_m"]
+                DB.tms = data["theme"]
+                DB.tagli = list(set(data["tags"]))
+        except FileNotFoundError:
+            with open(self.db,'w') as js:
+                data = {
+                    "money": 0,
+                    "log": [],
+                    "log_m": [],
+                    "theme": 0,
+                    "tags": [
+                        "\ud544\ud130\ub9c1 \uc5c6\uc74c"
+                        ]
+                    }
+                json.dump(data,js,indent=4)
         self.text = ''
         self.initialize_ui()
 
