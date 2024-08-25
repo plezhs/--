@@ -38,7 +38,7 @@ class TagFilterProxyModel(QSortFilterProxyModel):
         item = self.sourceModel().itemFromIndex(index)
         item_tags = item.data(Qt.ItemDataRole.UserRole)
 
-        # 입금/출금 태그 필터링
+        # 수입/지출 태그 필터링
         if self.include_tags:
             if not any(tag in item_tags for tag in self.include_tags):
                 return False
@@ -88,6 +88,8 @@ class MW(QWidget):
         self.text = ''
         self.initialize_ui()
 
+
+
     def initialize_ui(self):
         """setup GUI application."""
         self.setFixedSize(405,720)
@@ -107,12 +109,12 @@ class MW(QWidget):
         self.btnm.clicked.connect(self.btnmo)
 
         self.btnfilin = QPushButton()
-        self.btnfilin.setText("입금\n내역")
+        self.btnfilin.setText("수입\n내역")
         self.btnfilin.setFixedSize(65,65)
         self.btnfilin.setCheckable(True)
 
         self.btnfilout = QPushButton()
-        self.btnfilout.setText("출금\n내역")
+        self.btnfilout.setText("지출\n내역")
         self.btnfilout.setFixedSize(65,65)
         self.btnfilout.setCheckable(True)
         
@@ -135,14 +137,19 @@ class MW(QWidget):
         self.btnsv.setText('저장')
         self.btnsv.clicked.connect(self.dbsave)
 
+        # self.static = QPushButton()
+        # self.static.setFixedSize(100,30)
+        # self.static.setText('통계')
+        # self.static.clicked.connect(self.sta)
+
         self.btninput = QPushButton()
         self.btninput.setFixedSize(100,30)
-        self.btninput.setText("입금")
+        self.btninput.setText("수입")
         self.btninput.clicked.connect(self.inp)
 
         self.btnminus = QPushButton()
         self.btnminus.setFixedSize(100,30)
-        self.btnminus.setText("출금")
+        self.btnminus.setText("지출")
         self.btnminus.clicked.connect(self.inm)
 
         # QStandardItemModel 생성
@@ -173,6 +180,7 @@ class MW(QWidget):
         filterbox.addWidget(self.combo_box)
         moneybal.addWidget(self.result_output)
         grid.addWidget(self.btnsv,0,0)
+        # grid.addWidget(self.static,0,1)
         grid.addWidget(self.btninput,0,1)
         grid.addWidget(self.btnminus,0,2)
 
@@ -180,14 +188,24 @@ class MW(QWidget):
 
         self.show() # Display the window on the screen
 
+    # def sta(self):
+    #     tagli = list()
+    #     for j in DB.tagli:
+    #         tagli.append(j)
+    #     tagli.remove('필터링 없음')
+    #     reli = []
+    #     for i in tagli:
+    #         reli.append({i : self.calculate_tag_ratios_within_deposit_withdraw(self.model,i)})
+    #     print(reli)
+
     def onFilterChanged(self):
         include_tags = []
         if self.btnfilin.isChecked():
-            include_tags.append("입금")
+            include_tags.append("수입")
         if self.btnfilout.isChecked():
-            include_tags.append("출금")
+            include_tags.append("지출")
         
-        # include_tags가 비어 있으면 "입금" 및 "출금" 태그 필터링을 하지 않음
+        # include_tags가 비어 있으면 "수입" 및 "지출" 태그 필터링을 하지 않음
         self.proxy_model.setIncludeTags(include_tags)
 
         filter_tag = self.combo_box.currentText()
@@ -227,11 +245,11 @@ class MW(QWidget):
             apply_stylesheet(app,theme=tms[DB.tms])
             DB.tms += 1
     #=================
-    #입금
+    #수입
     def inp(self):
         self.dialog = QDialog()
         apply_stylesheet(self.dialog,theme=list_themes()[DB.tms])
-        self.dialog.setWindowTitle('입금')
+        self.dialog.setWindowTitle('수입')
         self.dialog.setFixedSize(400,400)
 
         self.tagli = []
@@ -291,7 +309,7 @@ class MW(QWidget):
             reply = QMessageBox.information(self, 'Warning', '모든 칸을 채워주세요.')
         else:
             DB.log.append(self.log.text())
-            self.tagli.append("입금")
+            self.tagli.append("수입")
             DB.log_m.append({self.log.text() : int(self.logm.text()),"timestamp" : time,"tag" : self.tagli})
             DB.money += int(self.logm.text())
             self.btnm.setText(f"Money\n{DB.money}₩")
@@ -305,11 +323,11 @@ class MW(QWidget):
         self.dialog.close()
         self.dialog.deleteLater()
     #=================
-    #출금
+    #지출
     def inm(self):
         self.dialog = QDialog()
         apply_stylesheet(self.dialog,theme=list_themes()[DB.tms])
-        self.dialog.setWindowTitle('출금')
+        self.dialog.setWindowTitle('지출')
         self.dialog.setFixedSize(400,400)
 
         self.tagli = []
@@ -377,7 +395,7 @@ class MW(QWidget):
             print(self.logm.text())
         else:
             DB.log.append(self.log.text())
-            self.tagli.append("출금")
+            self.tagli.append("지출")
             DB.log_m.append({self.log.text() : -int(self.logm.text()),"timestamp" : time,"tag" : self.tagli})
             DB.money -= int(self.logm.text())
             self.btnm.setText(f"Money\n{DB.money}₩")
