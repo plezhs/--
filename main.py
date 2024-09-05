@@ -2,9 +2,9 @@ from datetime import datetime
 import json
 import sys
 import PyQt6.QtCore
-from PyQt6.QtWidgets import (QApplication, QWidget,QHBoxLayout,QVBoxLayout,QGridLayout,QLineEdit,QPushButton, QDialog, QMessageBox,QListView, QComboBox)  # Added import for QComboBox
+from PyQt6.QtWidgets import (QApplication, QLabel,QFrame,QWidget,QHBoxLayout,QVBoxLayout,QGridLayout,QLineEdit,QPushButton, QDialog, QMessageBox,QListView, QComboBox)  # Added import for QComboBox
 from PyQt6.QtCore import QSortFilterProxyModel, Qt
-from PyQt6.QtGui import QStandardItemModel, QStandardItem,QIntValidator
+from PyQt6.QtGui import QFont,QStandardItemModel, QStandardItem,QIntValidator
 import os
 from qt_material import apply_stylesheet, list_themes
 
@@ -131,6 +131,7 @@ class MW(QWidget):
         # QListView 설정
         self.result_output = QListView()
         self.result_output.setFixedHeight(250)
+        self.result_output.clicked.connect(lambda index: self.info(index))
 
         self.btnsv = QPushButton()
         self.btnsv.setFixedSize(100,30)
@@ -158,11 +159,12 @@ class MW(QWidget):
         # 아이템 생성 및 태그 설정
         self.items = []
         for k in range(0,len(DB.log_m)):
-            it = (f"[{DB.log_m[k]["timestamp"]}] {DB.log[k]} : {DB.log_m[k][DB.log[k]]}",DB.log_m[k]["tag"])
+            it = (f"{DB.log_m[k]["timestamp"]}",f"{DB.log[k]}",f"{DB.log_m[k][DB.log[k]]}",DB.log_m[k]["tag"])
             self.items.append(it)
-        for name, tags in self.items:
-            item = QStandardItem(name)
+        for timeline,name,mone,tags in self.items:
+            item = QStandardItem(f"[{timeline}] {name} : {mone}")
             item.setData(tags, Qt.ItemDataRole.UserRole)
+            item.setData([timeline,name,mone,tags],Qt.ItemDataRole.UserRole + 1)
             self.model.appendRow(item)
         
         self.proxy_model = TagFilterProxyModel()
@@ -197,6 +199,87 @@ class MW(QWidget):
     #     for i in tagli:
     #         reli.append({i : self.calculate_tag_ratios_within_deposit_withdraw(self.model,i)})
     #     print(reli)
+
+    def info(self, index):
+        self.dialog = QDialog()
+        apply_stylesheet(self.dialog,theme=list_themes()[DB.tms])
+        self.dialog.setWindowTitle('Info')
+        self.dialog.setFixedSize(400,400)
+
+        source_index = self.proxy_model.mapToSource(index)
+    
+    # 원본 모델에서 아이템 가져오기
+        item = self.model.itemFromIndex(source_index)
+        item_data = item.data(Qt.ItemDataRole.UserRole + 1)
+
+        timestamp = item_data[0]
+        name = item_data[1]
+        amount = item_data[2]
+        tags = item_data[3]
+
+        # vlay = QVBoxLayout()
+        
+        # name = QPushButton()
+        # name.setText(item_data[1])
+        # name.setStyleSheet("background-color: transparent; border: none;")
+        # name.setEnabled(False)
+
+        layout = QVBoxLayout()
+
+        # 카드 스타일을 위한 프레임
+        card_frame = QFrame()
+        card_frame.setFrameShape(QFrame.Shape.Box)
+        card_frame.setLineWidth(2)
+        
+        # 카드 레이아웃
+        card_layout = QVBoxLayout()
+        
+        # 타임스탬프, 이름, 금액, 태그를 표시할 라벨
+        timestamp_label = QLabel(f"<b>Timestamp:</b> {timestamp}")
+        name_label = QLabel(f"<b>Name:</b> {name}")
+        
+        # amount를 숫자로 변환하고 포맷팅 적용
+        try:
+            amount = float(amount)
+        except ValueError:
+            amount = 0.0
+        
+        amount_label = QLabel(f"<b>Amount:</b> {amount:,.2f}₩")
+        tags_label = QLabel(f"<b>Tags:</b> {', '.join(tags)}")
+        
+        # 폰트 스타일 설정
+        font = QFont()
+        font.setPointSize(12)
+        timestamp_label.setFont(font)
+        name_label.setFont(font)
+        amount_label.setFont(font)
+        tags_label.setFont(font)
+        
+        # 라벨을 카드 레이아웃에 추가
+        card_layout.addWidget(timestamp_label)
+        card_layout.addWidget(name_label)
+        card_layout.addWidget(amount_label)
+        card_layout.addWidget(tags_label)
+        
+        # 카드 레이아웃을 프레임에 설정
+        card_frame.setLayout(card_layout)
+        
+        # 다이얼로그에 카드 프레임 추가
+        layout.addWidget(card_frame)
+        
+        # 닫기 버튼 추가
+        close_button = QPushButton("Close")
+        close_button.clicked.connect(self.accept)
+        close_button.setFixedHeight(65)
+        
+        layout.addWidget(close_button)
+        self.dialog.setLayout(layout)
+
+        self.dialog.exec()
+
+    def accept(self):
+        self.dialog.close()
+        self.dialog.deleteLater()
 
     def onFilterChanged(self):
         include_tags = []
@@ -239,11 +322,12 @@ class MW(QWidget):
     def btnmo(self):
         """setup the main window."""
         tms = list_themes()
-        if DB.tms == 27:
+        if DB.tms == 26:
             DB.tms = 0
-        else:
             apply_stylesheet(app,theme=tms[DB.tms])
+        else:
             DB.tms += 1
+            apply_stylesheet(app,theme=tms[DB.tms])
     #=================
     #수입
     def inp(self):
@@ -317,6 +401,7 @@ class MW(QWidget):
             item = QStandardItem(f"[{time}] {self.log.text()} : {int(self.logm.text())}")
             item.setData(self.tagli, Qt.ItemDataRole.UserRole)
             self.model.appendRow(item)
+            self.dbsave()
         self.log.setText('')
         self.logm.setText('')
 
@@ -403,6 +488,7 @@ class MW(QWidget):
             item = QStandardItem(f"[{time}] {self.log.text()} : -{int(self.logm.text())}")
             item.setData(self.tagli, Qt.ItemDataRole.UserRole)
             self.model.appendRow(item)
+            self.dbsave()
 
         self.log.setText('')
         self.logm.setText('')
