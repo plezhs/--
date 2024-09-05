@@ -2,11 +2,14 @@ from datetime import datetime
 import json
 import sys
 import PyQt6.QtCore
+import PyQt6.QtGui
 from PyQt6.QtWidgets import (QApplication, QLabel,QFrame,QWidget,QHBoxLayout,QVBoxLayout,QGridLayout,QLineEdit,QPushButton, QDialog, QMessageBox,QListView, QComboBox)  # Added import for QComboBox
-from PyQt6.QtCore import QSortFilterProxyModel, Qt
-from PyQt6.QtGui import QFont,QStandardItemModel, QStandardItem,QIntValidator
+from PyQt6.QtCore import QSortFilterProxyModel, Qt, QByteArray  # Added import for QByteArray
+from PyQt6.QtGui import QFont,QStandardItemModel, QStandardItem,QIntValidator, QIcon, QImage, QPixmap  # Added import for QPixmap
 import os
 from qt_material import apply_stylesheet, list_themes
+import webbrowser  # Added import for webbrowser
+import requests  # Added import for requests
 
 # def resource_path(relative_path):
 #     """ PyInstaller 패키지 내에서 리소스 파일의 절대 경로를 가져오는 함수 """
@@ -107,6 +110,7 @@ class MW(QWidget):
         self.btnm = QPushButton() # Set the minimum size directly without QSize
         self.btnm.setText(f"잔액\n{DB.money}₩")
         self.btnm.clicked.connect(self.btnmo)
+        self.btnm.setStyleSheet("background-color: transparent;")
 
         self.btnfilin = QPushButton()
         self.btnfilin.setText("수입\n내역")
@@ -121,7 +125,7 @@ class MW(QWidget):
         self.combo_box = QComboBox()
         for j in DB.tagli:
             self.combo_box.addItem(j)
-
+        
         # self.tag_list_widget = QListWidget()
         # self.tag_list_widget.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
         # self.tag_list_widget.setFixedHeight(100)
@@ -159,7 +163,7 @@ class MW(QWidget):
         # 아이템 생성 및 태그 설정
         self.items = []
         for k in range(0,len(DB.log_m)):
-            it = (f"{DB.log_m[k]["timestamp"]}",f"{DB.log[k]}",f"{DB.log_m[k][DB.log[k]]}",DB.log_m[k]["tag"])
+            it = (f"{DB.log_m[k]['timestamp']}",f"{DB.log[k]}",f"{DB.log_m[k][DB.log[k]]}",DB.log_m[k]["tag"])
             self.items.append(it)
         for timeline,name,mone,tags in self.items:
             item = QStandardItem(f"[{timeline}] {name} : {mone}")
@@ -187,6 +191,22 @@ class MW(QWidget):
         grid.addWidget(self.btnminus,0,2)
 
         apply_stylesheet(app,theme=f"{list_themes()[DB.tms]}")
+
+        url_image = "https://camo.githubusercontent.com/4374f0b29a45f7d158ec8fe94398eb90f4ac94c03d6b99346b99e916e5157cb9/68747470733a2f2f6564656e742e6769746875622e696f2f537570657254696e7949636f6e732f696d616765732f706e672f6769746875622e706e67"
+
+        # Add GitHub button with icon
+        self.github_button = QPushButton()
+        response = requests.get(url_image)
+        image_data = QByteArray(response.content)
+
+        # Set the icon
+        pixmap = QPixmap()
+        pixmap.loadFromData(image_data)
+        self.github_button.setIcon(QIcon(pixmap))
+        self.github_button.setIconSize(PyQt6.QtCore.QSize(30,30))  # Adjust the icon size
+        self.github_button.setFixedSize(30, 30)
+        self.github_button.clicked.connect(self.open_github)
+        moneybal.addWidget(self.github_button)
 
         self.show() # Display the window on the screen
 
@@ -302,8 +322,8 @@ class MW(QWidget):
         loglist = []
         text = ''
         for i in range(0,len(DB.log)) :
-            text += f"[{DB.log_m[i]["timestamp"]}] {DB.log[i]} : {DB.log_m[i][DB.log[i]]}"
-            loglist.append(f"[{DB.log_m[i]["timestamp"]}] {DB.log[i]} : {DB.log_m[i][DB.log[i]]}",)
+            text += f"[{DB.log_m[i]['timestamp']}] {DB.log[i]} : {DB.log_m[i][DB.log[i]]}"
+            loglist.append(f"[{DB.log_m[i]['timestamp']}] {DB.log[i]} : {DB.log_m[i][DB.log[i]]}",)
         return loglist
     #=================
     #저장
@@ -400,6 +420,7 @@ class MW(QWidget):
             # self.result_output.addItem(f"[{time}] {self.log.text()} : {int(self.logm.text())}")
             item = QStandardItem(f"[{time}] {self.log.text()} : {int(self.logm.text())}")
             item.setData(self.tagli, Qt.ItemDataRole.UserRole)
+            item.setData([time, self.log.text(), int(self.logm.text()), self.tagli], Qt.ItemDataRole.UserRole + 1)
             self.model.appendRow(item)
             self.dbsave()
         self.log.setText('')
@@ -487,6 +508,7 @@ class MW(QWidget):
             # self.result_output.addItem(f"[{time}] {self.log.text()} : -{int(self.logm.text())}")
             item = QStandardItem(f"[{time}] {self.log.text()} : -{int(self.logm.text())}")
             item.setData(self.tagli, Qt.ItemDataRole.UserRole)
+            item.setData([time, self.log.text(), -int(self.logm.text()), self.tagli], Qt.ItemDataRole.UserRole + 1)
             self.model.appendRow(item)
             self.dbsave()
 
@@ -495,6 +517,10 @@ class MW(QWidget):
 
         self.dialog.close()
         self.dialog.deleteLater()
+
+    def open_github(self):
+        webbrowser.open("https://github.com/plezhs")
+
 # ===============================
 # Run the program
 if __name__ == '__main__':
